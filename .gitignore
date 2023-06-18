@@ -8,4 +8,4 @@ node_modules
 
 .prettierrc
 
-yarn-err.log
+yarn-error.log
