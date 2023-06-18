@@ -1,22 +1,43 @@
-import React, { useState, useEffect, useReducer, createContext } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, useReducer, createContext, useContext, lazy, Suspense } from 'react';
+import { useNavigate, BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
-import * as Api from './api';
-import { loginReducer } from './reducer';
+import { get as getApi } from './api.js';
+import { loginReducer } from './reducer.jsx';
 
-// import Header from './src/sections/header';
-// import Footer from './src/sections/footer';
+import Header from './src/sections/header.jsx';
+import HeaderLogout from './src/sections/headerlogout.jsx';
+import Footer from './src/sections/footer.jsx';
+import Loading from './src/pages/loading.jsx';
 
-import LoginForm from './src/pages/login/loginform.jsx';
-import RegisterForm from './src/pages/register/registerform';
-import MainPage from './src/pages/mainpage/mainpage.jsx';
-// import Rank from './src/pages/rank/rank';
-// import PostDetail from './src/pages/postdetail/postdetail.jsx';
+const LoginForm = lazy(() => import('./src/pages/login/loginform'));
+const RegisterForm = lazy(() => import('./src/pages/register/registerform'));
+const MainPage = lazy(() => import('./src/pages/mainpage/mainpage'));
+const Rank = lazy(() => import('./src/pages/rank/rank'));
+const Story = lazy(() => import('./src/pages/story/story'));
+const AddPost = lazy(() => import('./src/components/post/addpost'));
+const PostDetail = lazy(() => import('./src/components/post/postdetail'));
+const UserEdit = lazy(() => import('./src/components/user/useredit'));
+const UserDetail = lazy(() => import('./src/components/user/userdetail'));
+const PostEdit = lazy(() => import('./src/components/post/postedit'));
+const SearchPost = lazy(() => import('./src/pages/story/searchpost'));
+const NotFound = lazy(() => import('./src/pages/notfound'));
 
 export const UserStateContext = createContext(null);
+export const useUserStateContext = () => {
+    const context = useContext(UserStateContext);
+    if (!context) {
+        throw new Error('현재 context를 호출하는 범위가 유효하지 않습니다.');
+    }
+    return context;
+};
 export const DispatchContext = createContext(null);
 
 function App() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const isLogin = localStorage.getItem('userToken');
+
+    const path = location.pathname;
     // useReducer 훅을 통해 userState 상태와 dispatch함수를 생성함.
     const [userState, dispatch] = useReducer(loginReducer, {
         user: null,
@@ -29,7 +50,7 @@ function App() {
     const fetchCurrentUser = async () => {
         try {
             // 이전에 발급받은 토큰이 있다면, 이를 가지고 유저 정보를 받아옴.
-            const res = await Api.get('user/current');
+            const res = await getApi('user/isLogin');
             const currentUser = res.data;
 
             // dispatch 함수를 통해 로그인 성공 상태로 만듦.
@@ -38,9 +59,9 @@ function App() {
                 payload: currentUser,
             });
 
-            console.log('%c sessionStorage에 토큰 있음.', 'color: #d93d1a;');
+            console.log('%c localStorage에 토큰 있음.', 'color: #d93d1a;');
         } catch (err) {
-            console.log('%c SessionStorage에 토큰 없음.', 'color: #d93d1a;');
+            console.log('%c localStorage에 토큰 없음.', 'color: #d93d1a;');
         }
         // fetchCurrentUser 과정이 끝났으므로, isFetchCompleted 상태를 true로 바꿔줌
         setIsFetchCompleted(true);
@@ -49,27 +70,56 @@ function App() {
     // useEffect함수를 통해 fetchCurrentUser 함수를 실행함.
     useEffect(() => {
         fetchCurrentUser();
+
+        if (isLogin && (path === '/login' || path === 'register' || path === '/')) {
+            navigate('/rank');
+        }
+        if (!isLogin && path != '/login' && path != '/register' && path != '/') {
+            navigate('/login');
+            alert('로그인한 유저만 접근할 수 있습니다.');
+        }
     }, []);
 
     if (!isFetchCompleted) {
-        return 'loading...';
+        return <Loading />;
     }
 
     return (
         <DispatchContext.Provider value={dispatch}>
             <UserStateContext.Provider value={userState}>
-        <Router>
-            {/* <Header /> */}
-            <Routes>
-                <Route path="/" exact element={<MainPage />} />
-                <Route path="/login" element={<LoginForm />} />
-                <Route path="/register" element={<RegisterForm />} />
-                {/* <Route path="/story" element={<Story />} />
-                <Route path="/story/:postId" element={<PostDetail />} />
-                <Route path="*" element={<Rank />} /> */}
+                <Suspense fallback={<Loading />}>
+                    {isLogin && (
+                        <>
+                            <Header />
+                        </>
+                    )}
+                    {location.pathname === '/' && (
+                        <>
+                            <HeaderLogout />
+                        </>
+                    )}
+                    {/* <MainPage /> */}
+                    <Routes>
+                        <Route path="/" exact element={<MainPage />} />
+                        <Route path="/login" element={<LoginForm />} />
+                        <Route path="/register" element={<RegisterForm />} />
+                        <Route path="/rank" element={<Rank />} />
+                        <Route path="/story" element={<Story />} />
+                        <Route path="/addpost" element={<AddPost />} />
+                        <Route path="/useredit" element={<UserEdit />} />
+                        <Route path="/post/:postId" element={<PostDetail />} />
+                        <Route path="/mypage/:userId" element={<UserDetail />} />
+                        <Route path="/postedit/:postId" element={<PostEdit />} />
+                        <Route path="/searchpost" element={<SearchPost />} />
+
+                        <Route path="*" element={<NotFound />} />
                     </Routes>
-                    {/* <Footer /> */}
-                </Router>
+                    {isLogin && (
+                        <>
+                            <Footer />
+                        </>
+                    )}
+                </Suspense>
             </UserStateContext.Provider>
         </DispatchContext.Provider>
     );

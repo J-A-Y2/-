@@ -1,61 +1,48 @@
 import { likeService } from '../services/likeService.js';
-import errors from '../../errors.js';
+import { statusCode } from '../utils/statusCode.js';
 
-//post요청---> 생성하는 코드
-//put요청 ---> 업데이트 해주는 코드 / 증가,삭제
+class likeController {
+    static async showLike(req, res, next) {
+        try {
+            const userId = req.currentUserId;
+            const postId = req.params.postId;
 
-// 해당 포스트의 총 좋아요
-async function getAllLike (req, res, next) {
-    try {
-        const postId = req.body;
-        const like = await likeService.togglePostLike({ postId });
-        
-        res.status(200).send(like);
-    
-    } catch (error) {
-        next(error);
+            const like = await likeService.showStatusLike({ userId, postId });
+
+            statusCode.setResponseCode200(res);
+            return res.send({ message: like.message, likecount: like.likeCount, likeuser: like.likeUser });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async createLike(req, res, next) {
+        try {
+            const userId = req.currentUserId;
+            const postId = req.params.postId;
+
+            const like = await likeService.create({ userId, postId });
+
+            statusCode.setResponseCode201(res);
+            return res.send({ message: like.message });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async deleteLike(req, res, next) {
+        try {
+            const userId = req.currentUserId;
+            const postId = req.params.postId;
+
+            const like = await likeService.delete({ userId, postId });
+
+            statusCode.setResponseCode200(res);
+            return res.send({ message: like.message });
+        } catch (error) {
+            next(error);
+        }
     }
 }
 
-async function createLike (req, res, next) {
-    try {
-        const userId = req.currentUserId;
-        const postId = req.body;
-        const like = await likeService.create({userId, postId });
-
-        res.status(200).send(like);
-    
-    } catch (error) {
-        next(error);
-    }
-}
-
-async function deleteLike (req, res, next) {
-    try {
-        const userId = req.currentUserId;
-        const postId = req.body;
-        const like = await likeService.delete({userId, postId });
-        
-        res.status(200).send(like);
-    
-    } catch (error) {
-        next(error);
-    }
-}
-
-    //이거 어뜨케 나누지???
-async function updateLike(req, res, next) {
-    try {
-        const userId = req.currentUserId;
-        const postId = req.body;
-        //여기 수정필요.
-        const like = await likeService.countUpAndDown({userId, postId });
-            
-        res.status(200).send(like);
-        
-    } catch (error) {            
-        next(error);
-    }
-}
-
-export {getAllLike, createLike, deleteLike, updateLike}
+export { likeController };

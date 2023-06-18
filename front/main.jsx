@@ -1,15 +1,13 @@
 import './style.css';
 
-
-
-// import { setupCounter } from './counter.js';
-import App from './App';
+import App from './App.jsx';
 import React from 'react';
-import ReactDOM from 'react-dom';
+import * as ReactDOM from 'react-dom/client';
+import { BrowserRouter as Router } from 'react-router-dom';
 
-ReactDOM.render(
-    <React.StrictMode>
-        <App />
-    </React.StrictMode>,
-    document.querySelector('#app'),
+const app = ReactDOM.createRoot(document.getElementById('app'));
+app.render(
+    <Router>
+        <App style={{ overFlow: 'scroll' }} />
+    </Router>,
 );

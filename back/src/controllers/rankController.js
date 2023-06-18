@@ -1,21 +1,17 @@
 import { rankService } from '../services/rankService.js';
-import errors from '../../errors.js';
+import { statusCode } from '../utils/statusCode.js';
 
 class rankController {
-    static async rankList({ userId }) {
+    static async rankList(req, res, next) {
         try {
-            const user = await rankService.getRankList({ userId });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: user,
-            };
+            const userId = req.currentUserId;
+
+            const getRank = await rankService.getRankList({ userId });
+
+            statusCode.setResponseCode200(res);
+            return res.send({ message: getRank.message, rankList: getRank.rankList });
         } catch (error) {
-            if (error.name === 'UserNotFoundId') {
-                throw errors.UserNotFoundId;
-            } else {
-                throw errors.test;
-            }
+            next(error);
         }
     }
 }

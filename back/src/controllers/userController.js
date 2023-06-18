@@ -1,151 +1,119 @@
 import { userAuthService } from '../services/userService.js';
-import errors from '../../errors.js';
+import { statusCode } from '../utils/statusCode.js';
 
 class userAuthController {
-    static async login({ email, password }) {
+    static async register(req, res, next) {
         try {
-            const user = await userAuthService.getUser({ email, password });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: user,
-            };
+            const { email, password, nickname, imageUrl } = req.body;
+
+            const createUser = await userAuthService.createUser({ email, password, nickname, imageUrl });
+
+            statusCode.setResponseCode201(res);
+            return res.send(createUser.message);
         } catch (error) {
-            // 오류 발생 시 오류 응답 반환
-            if (error.name === 'UserNotFoundEmail') {
-                throw errors.UserNotFoundEmail;
-            } else if (error.name === 'InvalidCredentials') {
-                throw errors.InvalidCredentials;
-            } else {
-                throw errors.LoginFailedError;
-            }
+            next(error);
         }
     }
 
-    static async register({ email, password, nickname }) {
+    static async login(req, res, next) {
         try {
-            const user = await userAuthService.createUser({ email, password, nickname });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: user,
-            };
+            const { email, password } = req.body;
+
+            const loginUser = await userAuthService.getUser({ email, password });
+
+            statusCode.setResponseCode200(res);
+
+            return res.send({ message: loginUser.message, token: loginUser.token, userId: loginUser.userId });
         } catch (error) {
-            console.log(error);
-            // 오류 발생 시 오류 응답 반환
-            if (error.name === 'EmailAlreadyExists') {
-                throw errors.EmailAlreadyExists;
-            } else {
-                throw errors.RegistrationFailedError;
-            }
+            next(error);
         }
     }
 
-    static async isLogin({ userId }) {
+    static async isLogin(req, res, next) {
         try {
-            const user = await userAuthService.getUserInfo({ userId });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: user,
-            };
+            const userId = req.currentUserId;
+
+            const checkUser = await userAuthService.loginCheck({ userId });
+
+            statusCode.setResponseCode200(res);
+            return res.send({
+                message: checkUser.message,
+                userId: checkUser.userId,
+                email: checkUser.email,
+                nickname: checkUser.nickname,
+                userImage: checkUser.userImage,
+            });
         } catch (error) {
-            // 오류 발생 시 오류 응답 반환
-            if (error.name === 'UserNotFoundId') {
-                throw errors.UserNotFoundId;
-            } else {
-                throw errors.InvalidToken;
-            }
+            next(error);
         }
     }
 
-    static async getPoint({ userId }) {
+    static async getPoint(req, res, next) {
         try {
-            const point = await userAuthService.getUserPoint({ userId });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: point,
-            };
+            const userId = req.currentUserId;
+
+            const getPoint = await userAuthService.getUserPoint({ userId });
+
+            statusCode.setResponseCode200(res);
+            return res.send({ message: getPoint.message, userPoint: getPoint.userPoint });
         } catch (error) {
-            // 오류 발생 시 오류 응답 반환
-            if (error.name === 'InvalidToken') {
-                throw errors.InvalidToken;
-            } else {
-                throw errors.PointLoadFailedError;
-            }
+            next(error);
         }
     }
 
-    static async getCount({ userId }) {
+    static async getCount(req, res, next) {
         try {
-            const count = await userAuthService.getUserCount({ userId });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: count,
-            };
+            const userId = req.currentUserId;
+
+            const getCount = await userAuthService.getUserCount({ userId });
+
+            statusCode.setResponseCode200(res);
+            return res.send({ message: getCount.message, userCount: getCount.userCount });
         } catch (error) {
-            // 오류 발생 시 오류 응답 반환
-            if (error.name === 'InvalidToken') {
-                throw errors.InvalidToken;
-            } else {
-                throw errors.UserCountLoadFailedError;
-            }
+            next(error);
         }
     }
 
-    static async getInfo({ userId }) {
+    static async getInfo(req, res, next) {
         try {
-            const user = await userAuthService.getUserInfo({ userId });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: user,
-            };
+            const userId = req.params.userId;
+
+            const getInfo = await userAuthService.getUserInfo({ userId });
+
+            statusCode.setResponseCode200(res);
+            return res.send({ message: getInfo.message, userInfo: getInfo.userInfo });
         } catch (error) {
-            // 오류 발생 시 오류 응답 반환
-            if (error.name === 'UserNotFoundId') {
-                throw errors.UserNotFoundId;
-            } else {
-                throw errors.UserLoadFailedError;
-            }
+            next(error);
         }
     }
 
-    static async setInfo({ userId, toUpdate }) {
+    static async setInfo(req, res, next) {
         try {
-            const user = await userAuthService.setUserInfo({ userId, toUpdate });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: user,
-            };
+            const userId = req.params.userId;
+            const { nickname, description } = req.body;
+            const imageUrl = req.file.key;
+
+            const toUpdate = { nickname, description };
+
+            const setInfo = await userAuthService.setUserInfo({ userId, toUpdate, imageUrl });
+
+            statusCode.setResponseCode200(res);
+            return res.send({ message: setInfo.message });
         } catch (error) {
-            // 오류 발생 시 오류 응답 반환
-            if (error.name === 'UserNotFoundId') {
-                throw errors.UserNotFoundId;
-            } else {
-                throw errors.UserUpdateFailedError;
-            }
+            next(error);
         }
     }
 
-    static async delInfo({ userId }) {
+    static async delInfo(req, res, next) {
         try {
-            const user = await userAuthService.delUserInfo({ userId });
-            // 성공적인 응답 반환
-            return {
-                statusCode: 200,
-                response: user,
-            };
+            const userId = req.params.userId;
+
+            const delInfo = await userAuthService.delUserInfo({ userId });
+
+            statusCode.setResponseCode200(res);
+            return res.send({ message: delInfo.message });
         } catch (error) {
-            // 오류 발생 시 오류 응답 반환
-            if (error.name === 'UserNotFoundId') {
-                throw errors.UserNotFoundId;
-            } else {
-                throw errors.UserDeleteFailedError;
-            }
+            next(error);
         }
     }
 }
